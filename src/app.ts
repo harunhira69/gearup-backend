@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import { prisma } from "./lib/prisma";
 import { router } from "./user/user.route";
 import { authRouter } from "./auth/auth.route";
+import { categoryRouter } from "./category/category.route";
 
 const app:Application = express();
 
@@ -30,7 +31,9 @@ app.use("/api/auth",router)
 
 app.use("/api/auth",authRouter)
 
-app.use("/api/gear")
+
+
+app.use("/api/categories",categoryRouter)
 
 
 export default app
