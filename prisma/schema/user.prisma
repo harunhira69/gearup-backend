@@ -1,30 +1,30 @@
 model User {
-    id String @id @default(uuid())
-    name String
-    email String @unique
-    password String
-    role Role
-    status UserStatus @default(ACTIVE)
-   
-    phone String?
-    address String?
-    imageUrl String?
-   
+  id       String     @id @default(uuid())
+  name     String
+  email    String     @unique
+  password String
+  role     Role
+  status   UserStatus @default(ACTIVE)
 
-   profile Profile?
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  phone    String?
+  address  String?
+  imageUrl String?
 
-    @@map("users")
+  profile   Profile?
+  gearItems GearItem[] @relation("ProviderGearItems")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("users")
 }
 
 enum Role {
-    CUSTOMER
-    PROVIDER
-    ADMIN
+  CUSTOMER
+  PROVIDER
+  ADMIN
 }
 
-enum UserStatus{
-    ACTIVE
-    SUSPENDED
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
 }

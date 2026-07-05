@@ -26,19 +26,19 @@ const registerUser = catchAsync(async (req: Request, res: Response) => {
     }
 });
 
-const userProfile = catchAsync(async(req:Request,res:Response)=>{
-  const {id} = req.params
-    const user = await userService.userProfileIntoDb(id as string);
+// const userProfile = catchAsync(async(req:Request,res:Response)=>{
+//   const {id} = req.params
+//     const user = await userService.userProfileIntoDb(id as string);
 
-    sendResponse(res,{
-        success:true,
-        message:"Get User",
-        statusCode:httpStatus.OK,
-        data:user
-    })
-})
+//     sendResponse(res,{
+//         success:true,
+//         message:"Get User",
+//         statusCode:httpStatus.OK,
+//         data:user
+//     })
+// })
 
 export const userController = {
     registerUser,
-    userProfile
+
 };

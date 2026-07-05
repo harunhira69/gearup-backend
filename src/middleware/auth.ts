@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { Role } from "../../generated/prisma/enums";
+import { Role, UserStatus } from "../../generated/prisma/enums";
 import { catchAsync } from "../utils/catchAsync";
 import { jwtUtils } from "../utils/jwt";
 import config from "../config";
@@ -14,18 +14,19 @@ declare global {
         name: string;
         email: string;
         role: Role;
+        status: UserStatus;
       };
     }
   }
 }
+
 export const auth = (...requiredRoles: Role[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-
     const token =
-      req.cookies.accessToken ?  req.cookies.accessToken
-      :
-      req.headers.authorization?.startsWith("Bearer ") ? req.headers.authorization.split(" ")[1]
-    
+      req.cookies?.accessToken
+        ? req.cookies.accessToken
+        : req.headers.authorization?.startsWith("Bearer ")
+        ? req.headers.authorization.split(" ")[1]
         : req.headers.authorization;
 
     if (!token) {
@@ -34,27 +35,23 @@ export const auth = (...requiredRoles: Role[]) => {
 
     const verifyToken = jwtUtils.verifyToken(
       token,
-      config.jwt_access_secret
+      config.jwt_access_secret as string
     );
 
     if (!verifyToken.success) {
       throw new Error(verifyToken.message);
     }
 
-    const { id, name, email, role } =
-      verifyToken.data as JwtPayload;
+    const decoded = verifyToken.data as JwtPayload & {
+      id: string;
+      name: string;
+      email: string;
+      role: Role;
+      status: UserStatus;
+    };
 
-    // Role Check
-    if (
-      requiredRoles.length > 0 &&
-      !requiredRoles.includes(role)
-    ) {
-      throw new Error(
-        "Forbidden. You don't have permission to access this resource."
-      );
-    }
+    const { id, name, email, role, status } = decoded;
 
-    // User Exists?
     const user = await prisma.user.findUnique({
       where: {
         id,
@@ -65,10 +62,13 @@ export const auth = (...requiredRoles: Role[]) => {
       throw new Error("User not found. Please log in again.");
     }
 
-    // Blocked User Check
-    if (user.activeStatus === "BLOCKED") {
+    if (user.status === "SUSPENDED") {
+      throw new Error("Your account has been suspended. Please contact support.");
+    }
+
+    if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
       throw new Error(
-        "Your account has been blocked. Please contact support."
+        "Forbidden. You don't have permission to access this resource."
       );
     }
 
@@ -76,7 +76,8 @@ export const auth = (...requiredRoles: Role[]) => {
       id,
       name,
       email,
-      role,
+      role: user.role,
+      status: user.status,
     };
 
     next();

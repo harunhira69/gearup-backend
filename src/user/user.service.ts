@@ -51,29 +51,29 @@ const registerUserDB = async (payload: RegisterUser) => {
     }
 };
 
-const userProfileIntoDb = async(userId:string)=>{
-    const user = await prisma.user.findUniqueOrThrow({
-        where:{
-            id:userId
-        },
-        omit:{
-            password:true
-        },
-        include:{
-            profile:true
-        }
-    })
+// const userProfileIntoDb = async(userId:string)=>{
+//     const user = await prisma.user.findUniqueOrThrow({
+//         where:{
+//             id:userId
+//         },
+//         omit:{
+//             password:true
+//         },
+//         include:{
+//             profile:true
+//         }
+//     })
 
 
- if(!user){
-    throw new Error("User not Found");
+//  if(!user){
+//     throw new Error("User not Found");
     
- }
-    return user
+//  }
+//     return user
 
-}
+// }
 
 export const userService = {
     registerUserDB,
-    userProfileIntoDb
+  
 };
