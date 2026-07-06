@@ -6,7 +6,7 @@ import { prisma } from "./lib/prisma";
 import { router } from "./user/user.route";
 import { authRouter } from "./auth/auth.route";
 import { categoryRouter } from "./category/category.route";
-import { gearRouter } from "./gear/gear.route";
+import { gearRoute} from "./gear/gear.route";
 import { notFound } from "./middleware/notFound";
 import httpStatus from "http-status";
 import { STATUS_CODES } from "node:http";
@@ -36,7 +36,7 @@ app.use("/api/auth",router)
 
 app.use("/api/auth",authRouter)
 
-app.use("/api/gear", gearRouter);
+app.use("/api/gear", gearRoute);
 
 app.use("/api/categories",categoryRouter)
 

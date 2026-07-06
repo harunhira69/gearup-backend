@@ -44,7 +44,7 @@ let errorName = err.name || "Internal server Error "
 
 
 
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+    res.status(statusCode || httpStatus.INTERNAL_SERVER_ERROR).json({
         success:false,
         statusCode:statusCode || httpStatus.INTERNAL_SERVER_ERROR,
         name:errorName,
