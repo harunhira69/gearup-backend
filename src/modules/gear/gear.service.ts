@@ -1,7 +1,9 @@
 
 import { Prisma } from "../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
-import { GearFilterQuery } from "./gear.interface"
+import { createError, createValidationError } from "../../utils/createError";
+import { GearFilterQuery } from "./gear.interface";
+import httpStatus from "http-status"
 
 const getAllGearFromDB = async(query:GearFilterQuery)=>{
 const {category,price,brand} = query;
@@ -39,7 +41,12 @@ if(price){
     const maxPrice = Number(price);
 
     if(Number.isNaN(maxPrice)){
-        throw new Error("Price must be a Valid number");
+      throw createValidationError([
+        {
+            field:"price",
+            message:"Price must be a valid number"
+        }
+      ])
         
     }
 
@@ -59,17 +66,52 @@ const gear = await prisma.gearItem.findMany({
     },
     include:{
         category:true,
-    }
-})
+        provider:{
+            select:{
+                id:true,
+                name:true,
+                email:true,
+                role:true,
+                status:true,
+            },
+        },
+    },
+});
 
 return gear
 
 
+};
+
+const getSingleGearFromDB = (gearId:string)=>{
+const gear = prisma.gearItem.findUnique({
+    where:{
+        id:gearId
+    },
+    include:{
+        category:true,
+        provider:{
+            select:{
+                id:true,
+                name:true,
+                email:true,
+                role:true,
+                status:true
+            },
+        },
+    },
+});
+
+if(!gear){
+    throw createError("Gear Item Not Found",httpStatus.NOT_FOUND,{
+        field:"id",
+        value:gearId,
+    });
 }
 
-const getSingleGearFromDB = ()=>{
+return gear;
 
-}
+};
 
 export const  gearService  = {
     getAllGearFromDB,

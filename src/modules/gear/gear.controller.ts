@@ -3,6 +3,7 @@ import { catchAsync } from "../../utils/catchAsync";
 import { gearService } from "./gear.service";
 import { sendResponse } from "../../utils/sendResonse";
 import httpStatus from "http-status";
+import { createError } from "../../utils/createError";
 const getAllGear = catchAsync(async(req:Request,res:Response)=>{
 const query = req.query
 
@@ -18,6 +19,25 @@ sendResponse(res,{
 })
 
 const getSingleGear = catchAsync(async(req:Request,res:Response)=>{
+
+    const gearId = req.params.id;
+
+    if(!gearId){
+        throw createError("Gear Id is required",httpStatus.BAD_REQUEST,{
+            field:"id",
+            message:"Gear Id is required"
+        });
+    }
+
+ const result = await gearService.getSingleGearFromDB(gearId as string);
+
+
+    sendResponse(res,{
+        success:true,
+        statusCode:httpStatus.OK,
+        message:"Gear Item Retrieved successfully",
+        data:result
+    })
 
 })
 
