@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import { Prisma } from "../../generated/prisma/client";
+import { ZodError } from "zod";
 
 export const globalErrorHandler = (
   err: any,
@@ -18,6 +19,19 @@ export const globalErrorHandler = (
       path: req.originalUrl,
       method: req.method,
     };
+
+    if (err instanceof ZodError) {
+  statusCode = httpStatus.BAD_REQUEST;
+  message = "Validation failed";
+  errorDetails = err.issues.map((issue) => ({
+    field: issue.path.join("."),
+    message: issue.message,
+  }));
+} else if (err.name === "ValidationError") {
+  statusCode = httpStatus.BAD_REQUEST;
+  message = err.message || "Validation failed";
+  errorDetails = err.errorDetails;
+}
 
   if (err.name === "ValidationError") {
     statusCode = httpStatus.BAD_REQUEST;

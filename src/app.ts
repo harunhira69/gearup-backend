@@ -14,6 +14,7 @@ import { router } from "./modules/user/user.route";
 import { gearRoute } from "./modules/gear/gear.route";
 import { categoryRouter } from "./modules/category/category.route";
 import { rentalRouter } from "./modules/rental/rental.route";
+import { providerRouter } from "./modules/provider/provider.route";
 
 const app:Application = express();
 
@@ -46,6 +47,8 @@ app.use("/api/categories",categoryRouter)
 
 
 app.use("/api/rentals", rentalRouter);
+
+app.use("/api/provider", providerRouter);
 
 
 app.use(notFound)
