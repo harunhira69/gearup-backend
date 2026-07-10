@@ -38,21 +38,17 @@ app.get("/", async (req: Request, res: Response) => {
 
 
 app.use("/api/auth",router)
-
 app.use("/api/auth",authRouter)
 
+
+
 app.use("/api/gear", gearRoute);
-
 app.use("/api/categories",categoryRouter)
-
-
 app.use("/api/rentals", rentalRouter);
-
 app.use("/api/provider", providerRouter);
 
 
 app.use(notFound)
-
 app.use(globalErrorHandler)
 
 

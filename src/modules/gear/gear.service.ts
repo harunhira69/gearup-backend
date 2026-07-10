@@ -169,11 +169,41 @@ const createGearIntoDB = async (
       ]);
     }
 
+
+    const normalizedName = payload.name.trim();
+    const normalizedBrand = payload.brand.trim();
+
+  const existingGear = await tx.gearItem.findFirst({
+    where:{
+      providerId,
+      categoryId:payload.categoryId,
+      name:{
+        equals:normalizedName,
+        mode:"insensitive"
+      },
+      brand:{
+        equals:normalizedBrand,
+        mode:"insensitive"
+      },
+    }
+  });
+
+  if(existingGear){
+    throw createError(
+      "Gear item already exists for this provider",
+      httpStatus.CONFLICT,
+       {
+          fields: ["name", "brand", "categoryId"],
+          existingGearId: existingGear.id,
+        }
+    );
+  }
+
     const gear = await tx.gearItem.create({
       data: {
-        name: payload.name,
+        name: normalizedName,
         description: payload.description,
-        brand: payload.brand,
+        brand: normalizedBrand,
         pricePerDay: payload.pricePerDay,
         stock: payload.stock,
         availableQuantity: payload.availableQuantity,

@@ -3,22 +3,44 @@ import httpStatus from "http-status";
 import { Prisma } from "../../generated/prisma/client";
 import { ZodError } from "zod";
 
+type ErrorWithStatus = Error & {
+  statusCode?: number;
+  errorDetails?: unknown;
+};
+
+const isErrorWithStatus = (error: unknown): error is ErrorWithStatus => {
+  return error instanceof Error;
+};
+
 export const globalErrorHandler = (
-  err: any,
+  err: unknown,
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  console.log("Error:", err);
+  // console.log("Error:", err);
 
-  let statusCode = err.statusCode || httpStatus.INTERNAL_SERVER_ERROR;
-  let message = err.message || "Internal Server Error";
 
-  let errorDetails =
-    err.errorDetails || {
+    if (res.headersSent) {
+    return next(err);
+  }
+
+  let statusCode:number = httpStatus.INTERNAL_SERVER_ERROR;
+  let message = "Internal Server Error";
+
+  let errorDetails:unknown =
+  {
       path: req.originalUrl,
       method: req.method,
     };
+
+  if (isErrorWithStatus(err)) {
+    statusCode = err.statusCode || statusCode;
+    message = err.message || message;
+    errorDetails = err.errorDetails || errorDetails;
+  }
+
+
 
     if (err instanceof ZodError) {
   statusCode = httpStatus.BAD_REQUEST;
@@ -27,17 +49,14 @@ export const globalErrorHandler = (
     field: issue.path.join("."),
     message: issue.message,
   }));
-} else if (err.name === "ValidationError") {
+
+
+
+} else if (isErrorWithStatus(err) && err.name === "ValidationError") {
   statusCode = httpStatus.BAD_REQUEST;
   message = err.message || "Validation failed";
-  errorDetails = err.errorDetails;
-}
-
-  if (err.name === "ValidationError") {
-    statusCode = httpStatus.BAD_REQUEST;
-    message = err.message || "Validation failed";
-    errorDetails = err.errorDetails;
-  } else if (err instanceof Prisma.PrismaClientValidationError) {
+  errorDetails = err.errorDetails||errorDetails;
+}else if (err instanceof Prisma.PrismaClientValidationError) {
     statusCode = httpStatus.BAD_REQUEST;
     message = "You have provided incorrect field type or missing fields";
     errorDetails = {
@@ -46,7 +65,7 @@ export const globalErrorHandler = (
       method: req.method,
     };
   } else if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    if (err.code === "P2002") {
+if (err.code === "P2002") {
       statusCode = httpStatus.CONFLICT;
       message = "Duplicate value already exists";
       errorDetails = {
@@ -76,6 +95,10 @@ export const globalErrorHandler = (
       };
     }
   } else if (err instanceof Prisma.PrismaClientInitializationError) {
+    
+    
+    
+    
     if (err.errorCode === "P1000") {
       statusCode = httpStatus.UNAUTHORIZED;
       message = "Authentication failed against database server";
@@ -111,7 +134,14 @@ export const globalErrorHandler = (
     };
   }
 
-  res.status(statusCode).json({
+
+
+
+
+
+
+
+res.status(statusCode).json({
     success: false,
     message,
     errorDetails,

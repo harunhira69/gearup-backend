@@ -2,8 +2,7 @@ import { z } from "zod";
 
 const updateProviderOrderStatusSchema = z.object({
   body: z.object({
-    status: z.string().refine(
-      (value) => ["CONFIRMED", "PICKED_UP", "RETURNED"].includes(value),
+    status: z.enum(["CONFIRMED", "PICKED_UP", "RETURNED"],
       {
         message: "Status must be CONFIRMED, PICKED_UP, or RETURNED",
       }
