@@ -12,6 +12,7 @@ model User {
 
   profile   Profile?
   gearItems GearItem[] @relation("ProviderGearItems")
+  payment Payment[] @relation("CustomerPayments")
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

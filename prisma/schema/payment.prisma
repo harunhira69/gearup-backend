@@ -1,0 +1,47 @@
+model Payment {
+    id  String @id @default(uuid())
+
+    rentalOrderId  String @unique
+    rentalOrder RentalOrder  @relation(fields: [rentalOrderId],references: [id])
+
+    customerId String
+    customer User @relation("CustomerPayments",fields: [customerId],references: [id])
+
+    amount Float
+    currency String @default("usd")
+    
+    
+    provider PaymentProvider @default(STRIPE)
+    status PaymentStatus @default(PENDING)
+
+
+
+
+    stripePaymentIntentId String? @unique
+    transactionId String?
+    paidAt DateTime?
+
+    createdAt  DateTime @default(now())
+    updateAt DateTime @updatedAt
+    
+
+    @@index([customerId])
+    @@index([status])
+    @@map("payments")
+
+
+}
+
+enum PaymentProvider{
+    STRIPE
+    SSLCOMMERZ
+}
+
+
+enum PaymentStatus{
+    PENDING
+    PAID
+    FALIED
+    CANCELLED
+    REFUNDED
+}

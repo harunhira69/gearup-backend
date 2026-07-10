@@ -3,7 +3,7 @@ model RentalOrder {
   customerId  String
   customer    User         @relation("CustomerRentalOrders", fields: [customerId], references: [id])
   items       RentalOrderItem[]
-
+  payment Payment?
   status      RentalStatus @default(PLACED)
   totalAmount Float
 
