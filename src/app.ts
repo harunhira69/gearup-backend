@@ -1,4 +1,4 @@
-import express, { Application, NextFunction, Request, Response } from "express"
+import express, { Application, NextFunction, request, Request, Response } from "express"
 import config from "./config";
 import cors from "cors"
 import cookieParser from "cookie-parser";
@@ -16,6 +16,7 @@ import { categoryRouter } from "./modules/category/category.route";
 import { rentalRouter } from "./modules/rental/rental.route";
 import { providerRouter } from "./modules/provider/provider.route";
 import { paymentRouter } from "./modules/payments/payments.route";
+import { paymentController } from "./modules/payments/payments.controller";
 
 const app:Application = express();
 
@@ -23,6 +24,14 @@ app.use(cors({
     origin:config.app_url,
     credentials:true
 }))
+
+
+app.post(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" }),
+  paymentController.handleStripeWebhook
+);
+
 
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
