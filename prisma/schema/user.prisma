@@ -9,6 +9,7 @@ model User {
   phone    String?
   address  String?
   imageUrl String?
+  stripeCustomerId String? @unique
 
   profile   Profile?
   gearItems GearItem[] @relation("ProviderGearItems")

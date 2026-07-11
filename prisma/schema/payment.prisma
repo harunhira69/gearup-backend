@@ -16,13 +16,13 @@ model Payment {
 
 
 
-
+    stripeCheckoutSessionId String? @unique
     stripePaymentIntentId String? @unique
     transactionId String?
     paidAt DateTime?
 
     createdAt  DateTime @default(now())
-    updateAt DateTime @updatedAt
+    updatedAt DateTime @updatedAt
     
 
     @@index([customerId])
@@ -41,7 +41,7 @@ enum PaymentProvider{
 enum PaymentStatus{
     PENDING
     PAID
-    FALIED
+    FAILED
     CANCELLED
     REFUNDED
 }
