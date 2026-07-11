@@ -15,6 +15,8 @@ route.post(
   rentalController.createRental
 );
 
+
+
 route.get("/", auth(Role.CUSTOMER), rentalController.getMyRentals);
 
 route.get("/:id", auth(Role.CUSTOMER), rentalController.getSingleRental);

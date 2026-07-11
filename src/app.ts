@@ -17,6 +17,7 @@ import { rentalRouter } from "./modules/rental/rental.route";
 import { providerRouter } from "./modules/provider/provider.route";
 import { paymentRouter } from "./modules/payments/payments.route";
 import { paymentController } from "./modules/payments/payments.controller";
+import { reviewsRouter } from "./modules/reviews/reviews.route";
 
 const app:Application = express();
 
@@ -59,6 +60,9 @@ app.use("/api/provider", providerRouter);
 
 app.use("/api/payments",paymentRouter)
 
+
+
+app.use("/api/reviews",reviewsRouter)
 
 app.use(notFound)
 app.use(globalErrorHandler)

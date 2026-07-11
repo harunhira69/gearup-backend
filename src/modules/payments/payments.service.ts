@@ -403,10 +403,6 @@ const confirmPaymentIntoDB = async (
       );
     }
 
-    if (result.status === PaymentStatus.PAID) {
-      return result;
-    }
-
     return result;
   });
 

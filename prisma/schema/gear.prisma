@@ -17,6 +17,7 @@ model GearItem {
   provider   User   @relation("ProviderGearItems", fields: [providerId], references: [id])
 
   rentalOrderItems RentalOrderItem[]
+  reviews Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

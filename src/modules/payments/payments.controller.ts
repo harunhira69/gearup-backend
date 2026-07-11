@@ -103,7 +103,9 @@ const handleStripeWebhook = async (req: Request, res: Response) => {
       config.stripe_webhook_secret
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown webhook error";
+    const message =
+      error instanceof Error ? error.message : "Unknown webhook error";
+
     return res.status(400).send(`Webhook Error: ${message}`);
   }
 

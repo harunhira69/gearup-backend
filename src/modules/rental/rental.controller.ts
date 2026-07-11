@@ -24,6 +24,11 @@ const createRental = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+
+
+
+
 const getMyRentals = catchAsync(async (req: Request, res: Response) => {
   const customerId = req.user?.id;
 
