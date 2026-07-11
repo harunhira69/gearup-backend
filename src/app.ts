@@ -18,6 +18,7 @@ import { providerRouter } from "./modules/provider/provider.route";
 import { paymentRouter } from "./modules/payments/payments.route";
 import { paymentController } from "./modules/payments/payments.controller";
 import { reviewsRouter } from "./modules/reviews/reviews.route";
+import { adminRouter } from "./modules/admin/admin.route";
 
 const app:Application = express();
 
@@ -63,6 +64,9 @@ app.use("/api/payments",paymentRouter)
 
 
 app.use("/api/reviews",reviewsRouter)
+
+
+app.use("/api/admin",adminRouter)
 
 app.use(notFound)
 app.use(globalErrorHandler)
