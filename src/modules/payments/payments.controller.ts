@@ -106,7 +106,13 @@ const handleStripeWebhook = async (req: Request, res: Response) => {
     const message =
       error instanceof Error ? error.message : "Unknown webhook error";
 
-    return res.status(400).send(`Webhook Error: ${message}`);
+  return res.status(400).json({
+    success:false,
+    message:"Stripe webhook verification failed",
+    errorDetails:{
+        message
+    }
+});
   }
 
   try {
@@ -139,8 +145,10 @@ const handleStripeWebhook = async (req: Request, res: Response) => {
         break;
       }
 
-      default:
-        break;
+    default: {
+  console.log(`Unhandled Stripe Event: ${event.type}`);
+  break;
+}
     }
 
     return res.status(200).json({
@@ -150,12 +158,31 @@ const handleStripeWebhook = async (req: Request, res: Response) => {
     const message =
       error instanceof Error ? error.message : "Webhook processing failed";
 
-    return res.status(500).json({
-      received: false,
-      message,
-    });
+ return res.status(500).json({
+    success:false,
+    message:"Webhook processing failed",
+    errorDetails:{
+        message
+    }
+});
   }
 };
+
+const getPaymentStatus = catchAsync(async(req,res)=>{
+
+    const result=await paymentService.getPaymentStatus(
+        req.params.sessionId as string,
+        req.user!.id
+    );
+
+    sendResponse(res,{
+        success:true,
+        statusCode:httpStatus.OK,
+        message:"Payment status retrieved successfully",
+        data:result
+    });
+
+});
 
 export const paymentController = {
   createCheckOutSession,
@@ -163,4 +190,5 @@ export const paymentController = {
   getMyPayments,
   getSinglePayment,
   handleStripeWebhook,
+  getPaymentStatus
 };

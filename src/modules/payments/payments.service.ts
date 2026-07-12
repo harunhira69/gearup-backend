@@ -15,6 +15,13 @@ import {
 } from "./payments.interface";
 
 const getStripeAmount = (amount: number) => {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw createError("Invalid payment amount", httpStatus.BAD_REQUEST, {
+      field: "amount",
+      value: amount,
+    });
+  }
+
   return Math.round(amount * 100);
 };
 
@@ -97,7 +104,11 @@ const createCheckOutSession = async (
       rentalOrder.payment.stripeCheckoutSessionId
     );
 
-    if (existingSession.status === "open" && existingSession.url) {
+    if (
+  existingSession.status === "open" &&
+  existingSession.payment_status === "unpaid" &&
+  existingSession.url
+)  {
       return {
         payment: rentalOrder.payment,
         sessionId: existingSession.id,
@@ -127,8 +138,10 @@ const createCheckOutSession = async (
   const currency = config.stripe_currency || "usd";
   const amountInSmallestUnit = getStripeAmount(rentalOrder.totalAmount);
 
-  const checkoutSession = await stripe.checkout.sessions.create({
+const checkoutSession = await stripe.checkout.sessions.create(
+  {
     mode: "payment",
+
     customer: stripeCustomerId,
 
     success_url: `${config.app_url}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
@@ -141,7 +154,7 @@ const createCheckOutSession = async (
           unit_amount: amountInSmallestUnit,
           product_data: {
             name: "GearUp Rental Payment",
-            description: `Rental order ID: ${rentalOrder.id}`,
+            description: `Rental Order #${rentalOrder.id}`,
           },
         },
         quantity: 1,
@@ -151,15 +164,23 @@ const createCheckOutSession = async (
     metadata: {
       customerId,
       rentalOrderId: rentalOrder.id,
+      customerEmail: rentalOrder.customer.email,
+      customerName: rentalOrder.customer.name,
     },
 
     payment_intent_data: {
       metadata: {
         customerId,
         rentalOrderId: rentalOrder.id,
+        customerEmail: rentalOrder.customer.email,
+        customerName: rentalOrder.customer.name,
       },
     },
-  });
+  },
+  {
+    idempotencyKey: `gearup-rental-${rentalOrder.id}`,
+  }
+);
 
   const payment = await prisma.$transaction(async (tx) => {
     if (!rentalOrder.customer.stripeCustomerId) {
@@ -410,12 +431,34 @@ const confirmPaymentIntoDB = async (
     return payment;
   }
 
-  const checkoutSession = await stripe.checkout.sessions.retrieve(
-    payment.stripeCheckoutSessionId as string,
-    {
-      expand: ["payment_intent"],
-    }
-  );
+const checkoutSession = await stripe.checkout.sessions.retrieve(
+  payment.stripeCheckoutSessionId as string,
+  {
+    expand: ["payment_intent","customer"],
+  }
+);
+
+const paymentIntent = checkoutSession.payment_intent;
+
+// Extra safety check for expanded PaymentIntent
+if (
+  paymentIntent &&
+  typeof paymentIntent !== "string" &&
+  paymentIntent.status !== "succeeded"
+) {
+  return payment;
+}
+
+// Final payment verification
+if (
+  checkoutSession.status === "complete" &&
+  checkoutSession.payment_status === "paid"
+) {
+  return await markCheckoutSessionPaidIntoDB(checkoutSession);
+}
+
+// Payment is still pending/failed
+return payment;
 
   if (
     checkoutSession.status === "complete" &&
@@ -491,6 +534,39 @@ const getSinglePaymentFromDB = async (
   return payment;
 };
 
+const getPaymentStatus=async(
+sessionId:string,
+customerId:string
+)=>{
+
+const payment=await prisma.payment.findFirst({
+
+where:{
+customerId,
+stripeCheckoutSessionId:sessionId
+}
+
+});
+
+if(!payment){
+
+throw createError(
+"Payment not found",
+404
+);
+
+}
+
+return {
+
+status:payment.status,
+transactionId:payment.transactionId,
+paidAt:payment.paidAt
+
+};
+
+};
+
 export const paymentService = {
   createCheckOutSession,
   confirmPaymentIntoDB,
@@ -498,4 +574,5 @@ export const paymentService = {
   getSinglePaymentFromDB,
   markCheckoutSessionPaidIntoDB,
   markCheckoutSessionExpiredIntoDB,
+  getPaymentStatus
 };

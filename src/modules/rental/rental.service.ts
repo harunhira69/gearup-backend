@@ -29,6 +29,18 @@ const createRentalIntoDB = async (
     ]);
   }
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (start < today) {
+    throw createValidationError([
+      {
+        field: "startDate",
+        message: "Start date cannot be in the past",
+      },
+    ]);
+  }
+
   if (end <= start) {
     throw createValidationError([
       {
@@ -72,154 +84,228 @@ const createRentalIntoDB = async (
       );
     }
 
-    const itemQuantityMap = new Map<string, number>();
 
-    for (const item of items) {
-      itemQuantityMap.set(
-        item.gearItemId,
-        (itemQuantityMap.get(item.gearItemId) || 0) + item.quantity
-      );
-    }
 
-    const requestedItems = Array.from(itemQuantityMap.entries()).map(
-      ([gearItemId, quantity]) => ({
-        gearItemId,
-        quantity,
-      })
-    );
+  const itemQuantityMap = new Map<string, number>();
 
-    const gearIds = requestedItems.map((item) => item.gearItemId);
+for (const item of items) {
+  itemQuantityMap.set(
+    item.gearItemId,
+    (itemQuantityMap.get(item.gearItemId) || 0) + item.quantity
+  );
+}
 
-    const gearItems = await tx.gearItem.findMany({
-      where: {
-        id: {
-          in: gearIds,
-        },
-      },
+const requestedItems = Array.from(itemQuantityMap.entries()).map(
+  ([gearItemId, quantity]) => ({
+    gearItemId,
+    quantity,
+  })
+);
+
+const gearIds = requestedItems.map((item) => item.gearItemId);
+
+const gearItems = await tx.gearItem.findMany({
+  where: {
+    id: {
+      in: gearIds,
+    },
+  },
+});
+
+const gearMap = new Map(gearItems.map((gear) => [gear.id, gear]));
+
+for (const requestedItem of requestedItems) {
+  const gear = gearMap.get(requestedItem.gearItemId);
+
+  if (!gear) {
+    throw createError("Gear item not found", httpStatus.NOT_FOUND, {
+      field: "gearItemId",
+      value: requestedItem.gearItemId,
     });
+  }
 
-    const gearMap = new Map(gearItems.map((gear) => [gear.id, gear]));
+  // Customer cannot rent own gear
+  if (gear.providerId === customerId) {
+    throw createError(
+      "You cannot rent your own gear",
+      httpStatus.FORBIDDEN
+    );
+  }
 
-    for (const requestedItem of requestedItems) {
-      const gear = gearMap.get(requestedItem.gearItemId);
-
-      if (!gear) {
-        throw createError("Gear item not found", httpStatus.NOT_FOUND, {
-          field: "gearItemId",
-          value: requestedItem.gearItemId,
-        });
+  if (!gear.isAvailable) {
+    throw createError(
+      "Gear item is not available",
+      httpStatus.BAD_REQUEST,
+      {
+        field: "gearItemId",
+        value: requestedItem.gearItemId,
       }
+    );
+  }
 
-      if (!gear.isAvailable) {
-        throw createError("Gear item is not available", httpStatus.BAD_REQUEST, {
-          field: "gearItemId",
-          value: requestedItem.gearItemId,
-        });
+  if (gear.availableQuantity < requestedItem.quantity) {
+    throw createError(
+      "Requested quantity is not available",
+      httpStatus.BAD_REQUEST,
+      {
+        gearItemId: requestedItem.gearItemId,
+        requestedQuantity: requestedItem.quantity,
+        availableQuantity: gear.availableQuantity,
       }
+    );
+  }
 
-      if (gear.availableQuantity < requestedItem.quantity) {
-        throw createError(
-          "Requested quantity is not available",
-          httpStatus.BAD_REQUEST,
+  // Rental date overlap check
+  const overlappingRental = await tx.rentalOrderItem.findFirst({
+    where: {
+      gearItemId: requestedItem.gearItemId,
+      rentalOrder: {
+        status: {
+          in: [
+            "PLACED",
+            "CONFIRMED",
+            "PAID",
+            "PICKED_UP",
+          ],
+        },
+        AND: [
           {
-            gearItemId: requestedItem.gearItemId,
-            requestedQuantity: requestedItem.quantity,
-            availableQuantity: gear.availableQuantity,
-          }
-        );
+            startDate: {
+              lte: end,
+            },
+          },
+          {
+            endDate: {
+              gte: start,
+            },
+          },
+        ],
+      },
+    },
+    include: {
+      rentalOrder: true,
+    },
+  });
+
+  if (overlappingRental) {
+    throw createError(
+      "Gear item is already booked for the selected dates",
+      httpStatus.BAD_REQUEST,
+      {
+        gearItemId: requestedItem.gearItemId,
+        startDate,
+        endDate,
       }
-    }
+    );
+  }
+}
 
-    let totalAmount = 0;
+   let totalAmount = 0;
 
-    const rentalOrderItemsData = requestedItems.map((item) => {
-      const gear = gearMap.get(item.gearItemId);
+const rentalOrderItemsData = requestedItems.map((item) => {
+  const gear = gearMap.get(item.gearItemId);
 
-      if (!gear) {
-        throw createError("Gear item not found", httpStatus.NOT_FOUND);
-      }
+  if (!gear) {
+    throw createError("Gear item not found", httpStatus.NOT_FOUND);
+  }
 
-      const subtotal = gear.pricePerDay * item.quantity * rentalDays;
-      totalAmount += subtotal;
+  const subtotal = gear.pricePerDay * item.quantity * rentalDays;
 
-      return {
+  totalAmount += subtotal;
+
+  return {
+    gearItemId: item.gearItemId,
+    quantity: item.quantity,
+    pricePerDay: gear.pricePerDay,
+    subtotal,
+  };
+});
+
+// Reserve stock
+for (const item of requestedItems) {
+  const updateResult = await tx.gearItem.updateMany({
+    where: {
+      id: item.gearItemId,
+      isAvailable: true,
+      availableQuantity: {
+        gte: item.quantity,
+      },
+    },
+    data: {
+      availableQuantity: {
+        decrement: item.quantity,
+      },
+    },
+  });
+
+  if (updateResult.count !== 1) {
+    throw createError(
+      "Failed to reserve gear item due to insufficient availability",
+      httpStatus.BAD_REQUEST,
+      {
         gearItemId: item.gearItemId,
         quantity: item.quantity,
-        pricePerDay: gear.pricePerDay,
-        subtotal,
-      };
-    });
-
-    for (const item of requestedItems) {
-      const updateResult = await tx.gearItem.updateMany({
-        where: {
-          id: item.gearItemId,
-          isAvailable: true,
-          availableQuantity: {
-            gte: item.quantity,
-          },
-        },
-        data: {
-          availableQuantity: {
-            decrement: item.quantity,
-          },
-        },
-      });
-
-      if (updateResult.count !== 1) {
-        throw createError(
-          "Failed to reserve gear item due to insufficient availability",
-          httpStatus.BAD_REQUEST,
-          {
-            gearItemId: item.gearItemId,
-            quantity: item.quantity,
-          }
-        );
       }
-    }
+    );
+  }
+}
 
-    const rentalOrder = await tx.rentalOrder.create({
-      data: {
-        customerId,
-        startDate: start,
-        endDate: end,
-        totalAmount,
-        items: {
-          create: rentalOrderItemsData,
-        },
+// Create Rental Order
+const rentalOrder = await tx.rentalOrder.create({
+  data: {
+    customerId,
+    startDate: start,
+    endDate: end,
+    totalAmount,
+
+    items: {
+      create: rentalOrderItemsData,
+    },
+  },
+
+  include: {
+    customer: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
       },
+    },
+
+    items: {
       include: {
-        customer: {
+        gearItem: {
           select: {
             id: true,
             name: true,
-            email: true,
-            role: true,
-            status: true,
-          },
-        },
-        items: {
-          include: {
-            gearItem: {
-              include: {
-                category: true,
-                provider: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    role: true,
-                    status: true,
-                  },
-                },
+            image: true,
+            brand: true,
+            pricePerDay: true,
+            availableQuantity: true,
+
+            category: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+
+            provider: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
               },
             },
           },
         },
       },
-    });
+    },
+  },
+});
 
-    return rentalOrder;
+return rentalOrder;
   });
 
   return result;
@@ -229,36 +315,58 @@ const createRentalIntoDB = async (
 
 
 const getMyRentalsFromDB = async (customerId: string) => {
-  const rentals = await prisma.rentalOrder.findMany({
+  return await prisma.rentalOrder.findMany({
     where: {
       customerId,
     },
+
     orderBy: {
       createdAt: "desc",
     },
+
     include: {
       items: {
         include: {
           gearItem: {
-            include: {
-              category: true,
+            select: {
+              id: true,
+              name: true,
+              image: true,
+              brand: true,
+              pricePerDay: true,
+              availableQuantity: true,
+              isAvailable: true,
+
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+
               provider: {
                 select: {
                   id: true,
                   name: true,
                   email: true,
-                  role: true,
-                  status: true,
                 },
               },
             },
           },
         },
       },
+
+      payment: {
+        select: {
+          id: true,
+          amount: true,
+          status: true,
+          provider: true,
+          paidAt: true,
+        },
+      },
     },
   });
-
-  return rentals;
 };
 
 const getSingleRentalFromDB = async (
@@ -270,32 +378,56 @@ const getSingleRentalFromDB = async (
       id: rentalId,
       customerId,
     },
+
     include: {
       customer: {
         select: {
           id: true,
           name: true,
           email: true,
-          role: true,
-          status: true,
         },
       },
+
       items: {
         include: {
           gearItem: {
-            include: {
-              category: true,
+            select: {
+              id: true,
+              name: true,
+              image: true,
+              brand: true,
+              description: true,
+              pricePerDay: true,
+              availableQuantity: true,
+              isAvailable: true,
+
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+
               provider: {
                 select: {
                   id: true,
                   name: true,
                   email: true,
-                  role: true,
-                  status: true,
                 },
               },
             },
           },
+        },
+      },
+
+      payment: {
+        select: {
+          id: true,
+          amount: true,
+          status: true,
+          provider: true,
+          transactionId: true,
+          paidAt: true,
         },
       },
     },
@@ -310,7 +442,6 @@ const getSingleRentalFromDB = async (
 
   return rental;
 };
-
 export const rentalService = {
   createRentalIntoDB,
   getMyRentalsFromDB,

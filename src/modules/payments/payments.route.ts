@@ -21,6 +21,12 @@ route.post(
   paymentController.confirmPayment
 );
 
+route.get(
+    "/status/:sessionId",
+    auth(Role.CUSTOMER),
+    paymentController.getPaymentStatus
+);
+
 route.get("/", auth(Role.CUSTOMER), paymentController.getMyPayments);
 
 route.get("/:id", auth(Role.CUSTOMER), paymentController.getSinglePayment);
