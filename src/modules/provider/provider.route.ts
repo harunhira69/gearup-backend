@@ -34,4 +34,10 @@ route.patch(
   providerController.updateProviderOrderStatus
 );
 
+route.get(
+  "/dashboard",
+  auth(Role.PROVIDER),
+  providerController.getProviderDashboard
+);
+
 export const providerRouter = route;

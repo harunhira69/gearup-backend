@@ -61,7 +61,9 @@ const getAllGearFromDB = async (query: GearFilterQuery) => {
 
   const whereCondition: Prisma.GearItemWhereInput =
     andConditions.length > 0 ? { AND: andConditions } : {};
-
+console.log("QUERY:", query);
+console.log("AND:", andConditions);
+console.log("WHERE:", JSON.stringify(whereCondition, null, 2));
   const gear = await prisma.gearItem.findMany({
     where: whereCondition,
     orderBy: {

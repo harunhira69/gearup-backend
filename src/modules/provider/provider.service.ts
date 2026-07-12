@@ -161,7 +161,70 @@ const updateProviderOrderStatusIntoDB = async (
   return result;
 };
 
+const getProviderDashboardFromDB = async (providerId: string) => {
+  const [
+    totalGear,
+    availableGear,
+    rentedGear,
+    rentalItems,
+  ] = await prisma.$transaction([
+    prisma.gearItem.count({
+      where: {
+        providerId,
+      },
+    }),
+
+    prisma.gearItem.count({
+      where: {
+        providerId,
+        isAvailable: true,
+      },
+    }),
+
+    prisma.rentalOrderItem.count({
+      where: {
+        gearItem: {
+          providerId,
+        },
+        rentalOrder: {
+          status: {
+            in: ["CONFIRMED", "PAID", "PICKED_UP"],
+          },
+        },
+      },
+    }),
+
+    prisma.rentalOrderItem.findMany({
+      where: {
+        gearItem: {
+          providerId,
+        },
+        rentalOrder: {
+          status: "RETURNED",
+        },
+      },
+      select: {
+        subtotal: true,
+      },
+    }),
+  ]);
+
+  const totalRevenue = rentalItems.reduce(
+    (sum, item) => sum + item.subtotal,
+    0
+  );
+
+  return {
+    totalGear,
+    availableGear,
+    activeRentals: rentedGear,
+    completedRentals: rentalItems.length,
+    totalRevenue,
+  };
+};
+
 export const providerService = {
   getProviderOrdersFromDB,
   updateProviderOrderStatusIntoDB,
+  getProviderDashboardFromDB
 };

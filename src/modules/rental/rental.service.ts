@@ -279,7 +279,7 @@ const rentalOrder = await tx.rentalOrder.create({
           select: {
             id: true,
             name: true,
-            image: true,
+            imageUrl: true,
             brand: true,
             pricePerDay: true,
             availableQuantity: true,
@@ -331,7 +331,7 @@ const getMyRentalsFromDB = async (customerId: string) => {
             select: {
               id: true,
               name: true,
-              image: true,
+             imageUrl: true,
               brand: true,
               pricePerDay: true,
               availableQuantity: true,
@@ -394,7 +394,7 @@ const getSingleRentalFromDB = async (
             select: {
               id: true,
               name: true,
-              image: true,
+             imageUrl: true,
               brand: true,
               description: true,
               pricePerDay: true,

@@ -21,6 +21,8 @@ export default {
     stripe_webhook_secret:process.env.STRIPE_WEBHOOK_SECRET!,
     admin_email:process.env.ADMIN_EMAIL!,
     admin_pass:process.env.ADMIN_PASSWORD!,
+    provider_email:process.env.PROVIDER_EMAIL!,
+    provider_password:process.env.PROVIDER_PASSWORD!,
 
 
 }

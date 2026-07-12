@@ -1,33 +1,34 @@
 import { Request, Response } from "express";
+import httpStatus from "http-status";
 import { catchAsync } from "../../utils/catchAsync";
-import { adminService } from "./admin.service";
 import { sendResponse } from "../../utils/sendResonse";
-import httpStatus from "http-status"
-import { createError } from "../../utils/createError";
-const getAllUsers = catchAsync(async(req:Request,res:Response)=>{
-    const result  = await adminService.getAllUsersFromDB();
+import { adminService } from "./admin.service";
 
-    sendResponse(res,{
-success:true,
-statusCode:httpStatus.OK,
-message:"Users retrieved successfully",
-data:result
-    })
+const getDashboard = catchAsync(async (req: Request, res: Response) => {
+  const result = await adminService.getDashboardFromDB();
 
-})
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Admin dashboard retrieved successfully",
+    data: result,
+  });
+});
 
-const updateUser = catchAsync(async(req:Request,res:Response)=>{
- const adminId = req.user?.id;
-  const userId = req.params.id;
+const getAllUsers = catchAsync(async (req: Request, res: Response) => {
+  const result = await adminService.getAllUsersFromDB();
 
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Users retrieved successfully",
+    data: result,
+  });
+});
 
-if (!adminId) {
-    throw createError("Admin information not found", httpStatus.UNAUTHORIZED);
-  }
-
+const updateUser = catchAsync(async (req: Request, res: Response) => {
   const result = await adminService.updateUserIntoDB(
-    userId as string,
-    adminId,
+    req.params.id,
     req.body
   );
 
@@ -37,38 +38,34 @@ if (!adminId) {
     message: "User updated successfully",
     data: result,
   });
+});
 
-})
-
-const getAllGear = catchAsync(async(req:Request,res:Response)=>{
+const getAllGear = catchAsync(async (req: Request, res: Response) => {
   const result = await adminService.getAllGearFromDB();
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: "Gear items retrieved successfully",
+    message: "Gear retrieved successfully",
     data: result,
   });
+});
 
-})
-
-const getAllRentals = catchAsync(async(req:Request,res:Response)=>{
- const result = await adminService.getAllRentalsFromDB();
+const getAllRentals = catchAsync(async (req: Request, res: Response) => {
+  const result = await adminService.getAllRentalsFromDB();
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: "Rental orders retrieved successfully",
+    message: "Rentals retrieved successfully",
     data: result,
   });
-})
+});
 
-
-export const adminController  = {
-    getAllUsers,
-    updateUser,
-    getAllGear,
-    getAllRentals
-}
-
-
+export const adminController = {
+  getDashboard,
+  getAllUsers,
+  updateUser,
+  getAllGear,
+  getAllRentals,
+};

@@ -2,15 +2,16 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { prisma } from "../src/lib/prisma";
 import { Role, UserStatus } from "../generated/prisma/enums";
+import config from "../src/config";
 
 const main = async () => {
   const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
 
-  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@gearup.com";
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123";
+  const adminEmail = config.admin_email ?? "admin@gearup.com";
+  const adminPassword = config.admin_pass?? "admin123";
 
-  const providerEmail = process.env.PROVIDER_EMAIL ?? "provider@gearup.com";
-  const providerPassword = process.env.PROVIDER_PASSWORD ?? "provider123";
+  const providerEmail = config.provider_email ?? "provider@gearup.com";
+  const providerPassword = config.provider_password ?? "provider123";
 
   const hashedAdminPassword = await bcrypt.hash(adminPassword, saltRounds);
   const hashedProviderPassword = await bcrypt.hash(providerPassword, saltRounds);

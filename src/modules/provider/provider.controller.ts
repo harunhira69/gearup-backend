@@ -61,7 +61,24 @@ const updateProviderOrderStatus = catchAsync(
   }
 );
 
+const getProviderDashboard = catchAsync(async (req, res) => {
+  const providerId = req.user?.id;
+
+  const result = await providerService.getProviderDashboardFromDB(
+    providerId as string
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Provider dashboard retrieved successfully",
+    data: result,
+  });
+});
+
 export const providerController = {
   getProviderOrders,
   updateProviderOrderStatus,
+  getProviderDashboard,
+  
 };

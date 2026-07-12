@@ -7,18 +7,35 @@ import { adminValidation } from "./admin.validation";
 
 const route = Router();
 
-route.get("/users", auth(Role.ADMIN),
-adminController.getAllUsers)
+route.get(
+  "/dashboard",
+  auth(Role.ADMIN),
+  adminController.getDashboard
+);
 
-route.patch("/users/:id",auth(Role.ADMIN),
-validateRequest(adminValidation.updateUserSchema),
-adminController.updateUser),
+route.get(
+  "/users",
+  auth(Role.ADMIN),
+  adminController.getAllUsers
+);
 
+route.patch(
+  "/users/:id",
+  auth(Role.ADMIN),
+  validateRequest(adminValidation.updateUserSchema),
+  adminController.updateUser
+);
 
-route.get("/gear",auth(Role.ADMIN),
-adminController.getAllGear)
+route.get(
+  "/gear",
+  auth(Role.ADMIN),
+  adminController.getAllGear
+);
 
-route.get("/rentals",auth(Role.ADMIN),
-adminController.getAllRentals)
+route.get(
+  "/rentals",
+  auth(Role.ADMIN),
+  adminController.getAllRentals
+);
 
-export const adminRouter = route
+export const adminRouter = route;

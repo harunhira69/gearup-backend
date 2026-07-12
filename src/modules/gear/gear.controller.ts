@@ -8,7 +8,7 @@ import { GearFilterQuery } from "./gear.interface";
 
 const getAllGear = catchAsync(async (req: Request, res: Response) => {
   const query = req.query as unknown as GearFilterQuery;
-
+  console.log(req.query)
   const result = await gearService.getAllGearFromDB(query);
 
   sendResponse(res, {
