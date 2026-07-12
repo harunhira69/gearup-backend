@@ -4,20 +4,60 @@ import { prisma } from "../src/lib/prisma";
 import { Role, UserStatus } from "../generated/prisma/enums";
 
 const main = async () => {
-  const hashedPassword = await bcrypt.hash(
-    "provider123",
-    Number(process.env.BCRYPT_SALT_ROUNDS ?? 10)
-  );
+  const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
 
-  const provider = await prisma.user.upsert({
+  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@gearup.com";
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123";
+
+  const providerEmail = process.env.PROVIDER_EMAIL ?? "provider@gearup.com";
+  const providerPassword = process.env.PROVIDER_PASSWORD ?? "provider123";
+
+  const hashedAdminPassword = await bcrypt.hash(adminPassword, saltRounds);
+  const hashedProviderPassword = await bcrypt.hash(providerPassword, saltRounds);
+
+  const admin = await prisma.user.upsert({
     where: {
-      email: "provider@gearup.com",
+      email: adminEmail,
+    },
+    update: {
+      name: "GearUp Admin",
+      password: hashedAdminPassword,
+      role: Role.ADMIN,
+      status: UserStatus.ACTIVE,
+    },
+    create: {
+      name: "GearUp Admin",
+      email: adminEmail,
+      password: hashedAdminPassword,
+      role: Role.ADMIN,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  await prisma.profile.upsert({
+    where: {
+      userId: admin.id,
     },
     update: {},
     create: {
+      userId: admin.id,
+    },
+  });
+
+  const provider = await prisma.user.upsert({
+    where: {
+      email: providerEmail,
+    },
+    update: {
       name: "GearUp Demo Provider",
-      email: "provider@gearup.com",
-      password: hashedPassword,
+      password: hashedProviderPassword,
+      role: Role.PROVIDER,
+      status: UserStatus.ACTIVE,
+    },
+    create: {
+      name: "GearUp Demo Provider",
+      email: providerEmail,
+      password: hashedProviderPassword,
       role: Role.PROVIDER,
       status: UserStatus.ACTIVE,
     },
@@ -136,6 +176,12 @@ const main = async () => {
   }
 
   console.log("Seed completed successfully");
+  console.log("Admin credentials:");
+  console.log(`Email: ${adminEmail}`);
+  console.log(`Password: ${adminPassword}`);
+  console.log("Provider credentials:");
+  console.log(`Email: ${providerEmail}`);
+  console.log(`Password: ${providerPassword}`);
 };
 
 main()
