@@ -28,7 +28,7 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
 
 const updateUser = catchAsync(async (req: Request, res: Response) => {
   const result = await adminService.updateUserIntoDB(
-    req.params.id,
+    req.params.id as string,
     req.body
   );
 
