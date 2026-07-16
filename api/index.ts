@@ -6,9 +6,13 @@ declare global {
 }
 
 export default async function handler(req: any, res: any) {
-  if (!globalThis.__prismaConnected) {
-    await prisma.$connect();
-    globalThis.__prismaConnected = true;
+  try {
+    if (!globalThis.__prismaConnected && process.env.DATABASE_URL) {
+      await prisma.$connect();
+      globalThis.__prismaConnected = true;
+    }
+  } catch (error) {
+    console.error('Prisma connection failed in Vercel handler:', error);
   }
 
   return app(req, res);

@@ -1,8 +1,7 @@
-import express, { Application, NextFunction, request, Request, Response } from "express"
+import express, { Application, Request, Response } from "express"
 import config from "./config";
 import cors from "cors"
 import cookieParser from "cookie-parser";
-import { prisma } from "./lib/prisma";
 
 import { authRouter } from "./auth/auth.route";
 

@@ -1,8 +1,6 @@
 import Stripe from "stripe";
 import config from "../config";
 
-if (!config.stripe_secret_key) {
-throw new Error("STRIPE_SECRET_KEY is missing in .env file");
-}
+const stripeSecretKey = config.stripe_secret_key || "sk_test_dummy";
 
-export const stripe = new Stripe(config.stripe_secret_key);
+export const stripe = new Stripe(stripeSecretKey);
