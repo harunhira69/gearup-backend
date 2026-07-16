@@ -3,7 +3,7 @@
     "outDir": "./dist",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "target": "es2023",
+    "target": "esnext",
     "types": ["node"],
     "sourceMap": true,
     "declaration": true,
@@ -17,6 +17,6 @@
   
   },
 
-  // "include": ["src/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules","dist"]
 }
